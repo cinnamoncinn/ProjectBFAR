@@ -34,7 +34,7 @@ categorical_cols <- names(df_A)[sapply(df_A, is.character) | sapply(df_A, is.fac
 numerical_cols <- names(df_A)[sapply(df_A, is.numeric)]
 
 # Remove 'A2:GROUP' from categorical list (since it's the grouping column)
-categorical_cols <- setdiff(categorical_cols, "A2:GROUP")
+categorical_cols <- setdiff(categorical_cols, "GROUP")
 
 # ----------------------------------------
 # Create a directory for saving plots
@@ -102,5 +102,27 @@ for (col in numerical_cols) {
   ggsave(filename = paste0("visualizations/histograms", clean_filename(col), "_histogram.png"),
          plot = p, width = 8, height = 5)
 }
+# Clustering (K-Means)
+set.seed(123)
+df_num <- df_A[, numerical_cols]
+df_num_scaled <- scale(df_num)  # Standardizing numerical data
+kmeans_result <- kmeans(df_num_scaled, centers = 3)  # Assume 3 clusters
+df_A$Cluster <- as.factor(kmeans_result$cluster)
 
+# Visualize Clustering
+fviz_cluster(list(data = df_num_scaled, cluster = kmeans_result$cluster))
+ggsave("visualizations/kmeans_clusters.png", width = 8, height = 5)
+
+# Decision Tree for Impact Prediction
+set.seed(123)
+dt_model <- rpart(`A2:GROUP` ~ ., data = df_A, method = "class")
+rpart.plot(dt_model)
+ggsave("visualizations/decision_tree.png", width = 8, height = 5)
+
+# Association Rule Mining (Apriori)
+categorical_data <- df_A[, categorical_cols]
+categorical_data[] <- lapply(categorical_data, as.factor)
+transactions <- as(categorical_data, "transactions")
+rules <- apriori(transactions, parameter = list(supp = 0.05, conf = 0.8))
+inspect(rules)
 cat("✅ All visualizations have been saved in the 'visualizations' folder!\n")
