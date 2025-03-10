@@ -19,7 +19,7 @@ clean_filename <- function(filename) {
 # ----------------------------------------
 # Load dataset
 # ----------------------------------------
-df_A <- read_csv("dataset/cleaned_data.csv", show_col_types = FALSE)
+df_A <- read_csv("/cleaned_data.csv", show_col_types = FALSE)
 
 # Ensure 'A2:GROUP' exists and is a factor
 if (!"A2:GROUP" %in% colnames(df_A)) {

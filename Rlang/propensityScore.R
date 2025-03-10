@@ -18,6 +18,7 @@ data <- read_excel("Dataset/BFAR-DATA-2.xlsx", sheet = "Sheet1")
 # Convert categorical variables to factors
 data$REGION <- as.factor(data$REGION)
 data$GROUP <- as.factor(data$GROUP)
+data <- na.omit(data)  # Removes rows with NA
 
 # Create a folder to save plots
 output_dir <- "plots"
@@ -99,6 +100,12 @@ graph <- graph_from_data_frame(network_data)
 png(filename = file.path(output_dir, "network_graph.png"), width = 800, height = 600)
 plot(graph, vertex.size = 10, vertex.label.cex = 0.7, main = "Network Graph of Regions and Groups")
 dev.off()
+
+# Decision Tree for Impact Prediction
+set.seed(123)
+dt_model <- rpart(GROUP ~ ., data = data, method = "class")  
+rpart.plot(dt_model)
+ggsave("plots/decision_tree.png", width = 8, height = 5)
 
 # Pairwise Scatter Plot for Correlations
 pairwise_plot <- ggpairs(numeric_data)
