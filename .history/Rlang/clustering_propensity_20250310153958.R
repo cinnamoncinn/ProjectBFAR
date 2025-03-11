@@ -45,7 +45,7 @@ elbow_plot <- ggplot(data.frame(k = k.values, wss = wss_values), aes(x = k, y = 
 print(elbow_plot)
 
 # ---- K-Means Clustering ----
-optimal_k <- 1 # 3 def Adjust based on Elbow plot result
+optimal_k <- 3 # 3 def Adjust based on Elbow plot result
 kmeans_result <- kmeans(pca_scores, centers = optimal_k, nstart = 10) #nstart 10
 
 # Add cluster assignments to PCA scores
