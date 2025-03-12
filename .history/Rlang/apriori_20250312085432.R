@@ -1,0 +1,41 @@
+# Load necessary libraries
+library(arules)
+library(arulesViz)
+
+# Read the dataset
+df <- read.csv("dataset/cleaned_data.csv")
+
+# Function to categorize numerical values into "Low", "Medium", "High"
+categorize <- function(x) {
+  # Compute 33% and 66% quantiles safely
+  quantiles <- quantile(x, probs = c(0.33, 0.66), na.rm = TRUE, type = 7)
+  
+  # Ensure quantiles are unique, otherwise adjust manually
+  if (length(unique(quantiles)) < 2) {
+    return(rep("Medium", length(x)))  # Assign "Medium" if no proper bins exist
+  }
+  
+  # Apply cut() with exactly 3 intervals
+  cut(x, breaks = c(-Inf, unique(quantiles), Inf), 
+      labels = c("Low", "Medium", "High"), include.lowest = TRUE)
+}
+
+# Apply categorization only to numeric columns
+df_cat <- as.data.frame(lapply(df, function(col) {
+  if (is.numeric(col)) categorize(col) else as.factor(col)
+}))
+
+# Convert dataframe into transactions format
+df_trans <- as(df_cat, "transactions")
+
+# Apply Apriori Algorithm
+# Reduce excessive rules by increasing support and confidence
+rules <- apriori(df_trans, 
+                 parameter = list(supp = 0.5,  # Increase to 0.4 or 0.5
+                                  conf = 0.7,  # Increase to 0.7 or 0.8
+                                  minlen = 2, 
+                                  maxlen = 3))  # Keep maxlen lower
+# Keep only the top 500 rules
+rules <- sort(rules, by = "lift", decreasing = TRUE)[1:500]
+# Visualize the association rules
+plot(rules, method = "graph", control = list(max = 150), engine = "ggplot2")

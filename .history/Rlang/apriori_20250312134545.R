@@ -26,7 +26,7 @@ df_trans <- as(df, "transactions")
 
 # Apply Apriori algorithm
 rules <- apriori(df_trans, 
-                 parameter = list(supp = 0.1, 
+                 parameter = list(supp = 0.1,  # Increase to 0.4 or 0.5
                                   conf = 0.7,  # Increase to 0.7 or 0.8
                                   minlen = 2, 
                                   maxlen = 3))  # Keep maxlen lower
