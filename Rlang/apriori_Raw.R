@@ -9,27 +9,18 @@ df <- read_excel(file_path, sheet = "FINAL_DATASET")
 # Convert column names to valid R format
 colnames(df) <- make.names(colnames(df))
 
-# Remove 'B3.AGE' column
-df$B3.AGE <- NULL
-
-# Function to bin income columns
-bin_income <- function(column) {
-  cut(as.numeric(column),
-      breaks = c(0, 10000, 20000, 30000, 40000, 50000, Inf),
-      labels = c("0-10K", "10K-20K", "20K-30K", "30K-40K", "40K-50K", "50K+"),
-      include.lowest = TRUE)
+# Remove 'B3.AGE' column if it exists
+if ("B3.AGE" %in% colnames(df)) {
+  df$B3.AGE <- NULL
 }
 
-# Detect income columns dynamically
-income_cols <- grep("INCOME", colnames(df), value = TRUE)
-
-# Apply binning and handle NAs
+# Convert income columns to categorical factors
+income_cols <- grep("INCOME", colnames(df), value = TRUE)  # Find all income-related columns
 for (col in income_cols) {
-  df[[col]] <- bin_income(df[[col]])
-  df[[col]][is.na(df[[col]])] <- "Unknown"
+  df[[col]] <- factor(df[[col]], levels = c(1, 2, 3, 4, 5, 6))  # Convert to categorical factors
 }
 
-# Convert all columns to factors
+# Convert all columns to factors for association rule mining
 df[] <- lapply(df, as.factor)
 
 # Convert dataset to transactions format
@@ -37,7 +28,7 @@ df_trans <- as(df, "transactions")
 
 # Apply Apriori algorithm
 rules <- apriori(df_trans, 
-                 parameter = list(supp = 0.1, 
+                 parameter = list(supp = 0.3, 
                                   conf = 0.6,  
                                   minlen = 2, 
                                   maxlen = 3))
@@ -55,6 +46,6 @@ high_conf_rules_df <- as(high_conf_rules, "data.frame")
 View(high_conf_rules_df)  # Opens a new window in RStudio
 
 # Save filtered rules to CSV
-write.csv(high_conf_rules_df, file = "high_conf_rules.csv", row.names = FALSE)
+write.csv(high_conf_rules_df, file = "high_conf_rules2.csv", row.names = FALSE)
 
 print("High-confidence rules saved successfully in high_conf_rules.csv")
