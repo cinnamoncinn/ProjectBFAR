@@ -1,52 +1,19 @@
 # Load required libraries
-library(ggplot2)
-library(dplyr)
-library(FactoMineR)
-library(factoextra)
-library(cluster)
-library(dbscan)  # Added for DBSCAN
+library(arules)
+library(arulesViz)
 
-# Load the dataset
-df <- read.csv("dataset/cleaned_data.csv")
+# Load the dataset (replace 'rules.csv' with your file)
+rules_data <- read.csv("C:/Users/CLSD_User/Documents/GitHub/ProjectBFAR/rules.csv")
 
-# Select only numeric columns for PCA
-df_numeric <- df %>% select(where(is.numeric))
+# Convert necessary columns to the required format
+rules_data$confidence <- as.numeric(rules_data$confidence)  # Ensure confidence is numeric
 
-# Replace infinite values with NA (if any exist)
-df_numeric[df_numeric == Inf | df_numeric == -Inf] <- NA
+# Filter rules with confidence ≥ 80%
+filtered_rules <- subset(rules_data, confidence >= 0.80)
 
-# Standardize the data
-df_numeric <- na.omit(df_numeric)
+# Print the filtered rules as a table
+print(filtered_rules)
 
-# Perform PCA
-pca_result <- prcomp(df_numeric, center = TRUE, scale. = TRUE)
+# (Optional) Save the filtered rules to a new CSV file
+write.csv(filtered_rules, "filtered_rules.csv", row.names = FALSE)
 
-# Compute PCA scores
-pca_scores <- as.data.frame(pca_result$x[, 1:2])
-colnames(pca_scores) <- c("PC1", "PC2")
-
-# ---- K-Means Clustering (Existing) ----
-optimal_k <- 3  # Adjust based on Elbow plot result
-kmeans_result <- kmeans(pca_scores, centers = optimal_k, nstart = 10)
-
-# Add cluster assignments to PCA scores
-pca_scores$kmeans_cluster <- as.factor(kmeans_result$cluster)
-
-# ---- DBSCAN Clustering ----
-eps_value <- 0.5  # Adjust based on data distribution
-min_pts <- 5  # Minimum points to form a cluster
-dbscan_result <- dbscan(pca_scores[, 1:2], eps = eps_value, minPts = min_pts)
-
-# Add DBSCAN cluster labels to PCA scores
-pca_scores$dbscan_cluster <- as.factor(dbscan_result$cluster)  # -1 represents noise
-
-# ---- PCA Cluster Plot with DBSCAN ----
-ggplot(pca_scores, aes(x = PC1, y = PC2, color = dbscan_cluster)) +
-  geom_point(alpha = 0.8, size = 3) +
-  scale_color_manual(values = c("red", "blue", "green", "purple", "black")) + 
-  theme_minimal() +
-  labs(title = "DBSCAN Clustering on PCA-Reduced Data",
-       x = "Principal Component 1",
-       y = "Principal Component 2",
-       color = "DBSCAN Cluster") +
-  theme(legend.position = "right")

@@ -1,15 +1,15 @@
 # Load required libraries
 library(arules)
-library(ggplot2)
-library(arulesViz)
-library(plotly)
 
 # Load dataset
 file_path <- "Dataset/cleaned_data.csv"
-df <- read.csv(file_path, stringsAsFactors = TRUE)
+df <- read.csv(file_path, stringsAsFactors = FALSE)
 
 # Remove 'Age' column
 df$B3.AGE <- NULL
+
+# Convert all columns to factors
+df[] <- lapply(df, as.factor)
 
 # Function to bin income columns
 bin_income <- function(column) {
@@ -19,59 +19,37 @@ bin_income <- function(column) {
       include.lowest = TRUE)
 }
 
-# Apply binning
-df$C1.TOT_INCOME.A <- bin_income(df$C1.TOT_INCOME.A)
-df$C2.INCOME.B.FISH <- bin_income(df$C2.INCOME.B.FISH)
-df$C4.INCOME.B.ALT <- bin_income(df$C4.INCOME.B.ALT)
+# Apply binning (with NA handling)
+income_cols <- c("C1.TOT_INCOME.A", "C2.INCOME.B.FISH", "C4.INCOME.B.ALT")
+for (col in income_cols) {
+  df[[col]] <- bin_income(df[[col]])
+  df[[col]][is.na(df[[col]])] <- "Unknown"
+}
 
 # Convert dataset to transactions format
 df_trans <- as(df, "transactions")
 
 # Apply Apriori algorithm
 rules <- apriori(df_trans, 
-                 parameter = list(supp = 0.3, 
+                 parameter = list(supp = 0.1, 
                                   conf = 0.6,  
                                   minlen = 2, 
                                   maxlen = 3))
 
-# Convert rules to dataframe and save as CSV
+# Convert rules to dataframe
 rules_df <- as(rules, "data.frame")
-write.csv(rules_df, file = "rules.csv", row.names = FALSE)
 
-# Create APRIORI folder if it doesn't exist
-output_folder <- "APRIORI"
-if (!dir.exists(output_folder)) {
-  dir.create(output_folder)
-}
+# Filter rules with confidence >= 0.8
+high_conf_rules <- subset(rules, quality(rules)$confidence >= 0.8)
 
-# Function to save plots
-save_plot <- function(plot_func, filename) {
-  filepath <- file.path(output_folder, filename)
-  png(filepath, width = 800, height = 600)
-  plot_func()
-  dev.off()
-}
+# Convert filtered rules to dataframe
+high_conf_rules_df <- as(high_conf_rules, "data.frame")
 
-# Save all plots
-save_plot(function() plot(rules, method = "scatterplot", measure = c("support", "confidence"), shading = "lift"),
-          "scatterplot.png")
+# Preview the high-confidence rules
+View(high_conf_rules_df)  # Opens a new window in RStudio
+# print(high_conf_rules_df)  # Alternative for console output
 
-save_plot(function() plot(rules, method = "graph", control = list(type = "items")),
-          "graph.png")
+# Save filtered rules to CSV
+write.csv(high_conf_rules_df, file = "high_conf_rules.csv", row.names = FALSE)
 
-save_plot(function() plot(rules, method = "grouped"),
-          "grouped_plot.png")
-
-save_plot(function() plot(rules, method = "paracoord", control = list(reorder = TRUE)),
-          "parallel_coordinates.png")
-
-top_rules <- head(sort(rules, by = "lift"), 10)  # Get top 10 rules
-save_plot(function() plot(top_rules, method = "bar", measure = "lift", shading = "confidence"),
-          "top_10_rules_bar.png")
-
-# Interactive Graph (Cannot be saved as PNG)
-htmlwidget_filepath <- file.path(output_folder, "graph_interactive.html")
-htmlwidgets::saveWidget(plot(rules, method = "graph", engine = "htmlwidget"), htmlwidget_filepath)
-
-print("Rules saved successfully in rules.csv")
-print("Plots saved in the 'APRIORI' folder.")
+print("High-confidence rules saved successfully in high_conf_rules.csv")
